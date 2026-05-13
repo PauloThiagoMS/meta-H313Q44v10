@@ -1,0 +1,319 @@
+From 2ec77c2672677891714bcf6b0a801c3fc08503cf Mon Sep 17 00:00:00 2001
+From: MyName <my@example.com>
+Date: Thu, 7 May 2026 13:34:07 -0300
+Subject: [PATCH] ethernet-phy
+
+Upstream-Status: Pending
+---
+ .../allwinner/sun50i-h616-orangepi-zero2.dts  | 226 ++++++++----------
+ .../arm64/boot/dts/allwinner/sun50i-h616.dtsi |  27 +++
+ 2 files changed, 132 insertions(+), 121 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h616-orangepi-zero2.dts b/arch/arm64/boot/dts/allwinner/sun50i-h616-orangepi-zero2.dts
+index 47ab2aced..48368ffcc 100644
+--- a/arch/arm64/boot/dts/allwinner/sun50i-h616-orangepi-zero2.dts
++++ b/arch/arm64/boot/dts/allwinner/sun50i-h616-orangepi-zero2.dts
+@@ -1,150 +1,134 @@
+-// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
++// SPDX-License-Identifier: (GPL-2.0+ or MIT)
+ /*
+  * Copyright (C) 2020 Arm Ltd.
+  */
+ 
+ /dts-v1/;
+ 
+-#include "sun50i-h616-orangepi-zero.dtsi"
++#include "sun50i-h616.dtsi"
++
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/interrupt-controller/arm-gic.h>
++#include <dt-bindings/leds/common.h>
+ 
+ / {
+ 	model = "OrangePi Zero2";
+ 	compatible = "xunlong,orangepi-zero2", "allwinner,sun50i-h616";
++
++	aliases {
++		mmc0 = &mmc0;
++		mmc2 = &mmc2;
++		ethernet0 = &emac1;
++		serial0 = &uart0;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++
++	leds {
++		compatible = "gpio-leds";
++
++		led-red {
++			function = LED_FUNCTION_DISK_ACTIVITY;
++			color = <LED_COLOR_ID_RED>;
++			gpios = <&pio 7 6 GPIO_ACTIVE_HIGH>; /* PH6 */
++			linux,default-trigger = "mmc0";
++		};
++	};
++
++	reg_vcc5v: vcc5v {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc-5v";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		regulator-always-on;
++	};
++
++	reg_vcc3v3: vcc3v3 {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc-3v3";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		regulator-always-on;
++	};
++
++	reg_vcc1v16: vcc1v16 {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc-1v16";
++		regulator-min-microvolt = <1600000>;
++		regulator-max-microvolt = <1600000>;
++		regulator-always-on;
++	};
+ };
+ 
+-&cpu0  {
+-	cpu-supply = <&reg_dcdca>;
++&cpu0 {
++	cpu-supply = <&reg_vcc1v16>;
+ 	status = "okay";
+ };
+ 
+-&emac0 {
+-	allwinner,rx-delay-ps = <3100>;
+-	allwinner,tx-delay-ps = <700>;
+-	phy-mode = "rgmii";
+-	phy-supply = <&reg_dcdce>;
++&cpu1 {
++	cpu-supply = <&reg_vcc1v16>;
++	status = "okay";
+ };
+ 
+-&gpu {
+-	mali-supply = <&reg_dcdcc>;
++&cpu2 {
++	cpu-supply = <&reg_vcc1v16>;
+ 	status = "okay";
+ };
+ 
+-&mmc0 {
+-	vmmc-supply = <&reg_dcdce>;
++&cpu3 {
++	cpu-supply = <&reg_vcc1v16>;
++	status = "okay";
+ };
+ 
+-&r_rsb {
++&emac1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&rmii_pins>;
++	phy-mode = "rmii";
++	phy-handle = <&rmii_phy>;
++	phy-supply = <&reg_vcc3v3>;
++	allwinner,rx-delay-ps = <3100>;
++	allwinner,tx-delay-ps = <700>;
+ 	status = "okay";
++};
+ 
+-	axp305: pmic@745 {
+-		compatible = "x-powers,axp305", "x-powers,axp805",
+-			     "x-powers,axp806";
+-		interrupt-controller;
+-		#interrupt-cells = <1>;
+-		reg = <0x745>;
+-
+-		x-powers,self-working-mode;
+-		vina-supply = <&reg_vcc5v>;
+-		vinb-supply = <&reg_vcc5v>;
+-		vinc-supply = <&reg_vcc5v>;
+-		vind-supply = <&reg_vcc5v>;
+-		vine-supply = <&reg_vcc5v>;
+-		aldoin-supply = <&reg_vcc5v>;
+-		bldoin-supply = <&reg_vcc5v>;
+-		cldoin-supply = <&reg_vcc5v>;
+-
+-		regulators {
+-			reg_aldo1: aldo1 {
+-				regulator-always-on;
+-				regulator-min-microvolt = <3300000>;
+-				regulator-max-microvolt = <3300000>;
+-				regulator-name = "vcc-sys";
+-			};
+-
+-			reg_aldo2: aldo2 {	/* 3.3V on headers */
+-				regulator-always-on;
+-				regulator-min-microvolt = <3300000>;
+-				regulator-max-microvolt = <3300000>;
+-				regulator-name = "vcc3v3-ext";
+-			};
+-
+-			reg_aldo3: aldo3 {	/* 3.3V on headers */
+-				regulator-always-on;
+-				regulator-min-microvolt = <3300000>;
+-				regulator-max-microvolt = <3300000>;
+-				regulator-name = "vcc3v3-ext2";
+-			};
+-
+-			reg_bldo1: bldo1 {
+-				regulator-always-on;
+-				regulator-min-microvolt = <1800000>;
+-				regulator-max-microvolt = <1800000>;
+-				regulator-name = "vcc1v8";
+-			};
+-
+-			bldo2 {
+-				/* unused */
+-			};
+-
+-			bldo3 {
+-				/* unused */
+-			};
+-
+-			bldo4 {
+-				/* unused */
+-			};
+-
+-			cldo1 {
+-				/* reserved */
+-			};
+-
+-			cldo2 {
+-				/* unused */
+-			};
+-
+-			cldo3 {
+-				/* unused */
+-			};
+-
+-			reg_dcdca: dcdca {
+-				regulator-always-on;
+-				regulator-min-microvolt = <810000>;
+-				regulator-max-microvolt = <1100000>;
+-				regulator-name = "vdd-cpu";
+-			};
+-
+-			reg_dcdcc: dcdcc {
+-				regulator-always-on;
+-				regulator-min-microvolt = <810000>;
+-				regulator-max-microvolt = <990000>;
+-				regulator-name = "vdd-gpu-sys";
+-			};
+-
+-			reg_dcdcd: dcdcd {
+-				regulator-always-on;
+-				regulator-min-microvolt = <1500000>;
+-				regulator-max-microvolt = <1500000>;
+-				regulator-name = "vdd-dram";
+-			};
+-
+-			reg_dcdce: dcdce {
+-				regulator-always-on;
+-				regulator-min-microvolt = <3300000>;
+-				regulator-max-microvolt = <3300000>;
+-				regulator-name = "vcc-eth-mmc";
+-			};
+-
+-			sw {
+-				/* unused */
+-			};
+-		};
++&mdio1 {
++	rmii_phy: ethernet-phy@0 {
++		compatible = "ethernet-phy-ieee802.3-c22";
++		reg = <0>;
+ 	};
+ };
+ 
++&mmc0 {
++	vmmc-supply = <&reg_vcc3v3>;
++	broken-cd;
++	bus-width = <4>;
++	status = "okay";
++};
++
++&mmc2 {
++	vmmc-supply = <&reg_vcc3v3>;
++	bus-width = <8>;
++	non-removable;
++	cap-mmc-hw-reset;
++	status = "okay";
++};
++
+ &pio {
+-	vcc-pc-supply = <&reg_aldo1>;
+-	vcc-pf-supply = <&reg_aldo1>;
+-	vcc-pg-supply = <&reg_bldo1>;
+-	vcc-ph-supply = <&reg_aldo1>;
+-	vcc-pi-supply = <&reg_aldo1>;
++	vcc-pc-supply = <&reg_vcc3v3>;
++	vcc-pf-supply = <&reg_vcc3v3>;
++	vcc-pg-supply = <&reg_vcc1v16>;
++	vcc-ph-supply = <&reg_vcc3v3>;
++	vcc-pi-supply = <&reg_vcc3v3>;
++};
++
++&uart0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&uart0_ph_pins>;
++	status = "okay";
++};
++
++&emac0 {
++    status = "disabled";
+ };
+diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
+index 9a785d1ad..00ca98288 100644
+--- a/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
++++ b/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
+@@ -295,6 +295,14 @@ mmc2_pins: mmc2-pins {
+ 				bias-pull-up;
+ 			};
+ 
++			/omit-if-no-ref/
++			rmii_pins: rmii-pins {
++				pins = "PA0", "PA1", "PA2", "PA3", "PA4",
++				       "PA5", "PA6", "PA7", "PA8", "PA9";
++				function = "emac1";
++				drive-strength = <40>;
++			};
++
+ 			/omit-if-no-ref/
+ 			spi0_pins: spi0-pins {
+ 				pins = "PC0", "PC2", "PC4";
+@@ -600,6 +608,25 @@ mdio0: mdio {
+ 			};
+ 		};
+ 
++		emac1: ethernet@5030000 {
++			compatible = "allwinner,sun50i-h616-emac1";
++			syscon = <&syscon 1>;
++			reg = <0x05030000 0x10000>;
++			interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
++			interrupt-names = "macirq";
++			resets = <&ccu RST_BUS_EMAC1>;
++			reset-names = "stmmaceth";
++			clocks = <&ccu CLK_BUS_EMAC1>;
++			clock-names = "stmmaceth";
++			status = "disabled";
++
++			mdio1: mdio {
++				compatible = "snps,dwmac-mdio";
++				#address-cells = <1>;
++				#size-cells = <0>;
++			};
++		};
++
+ 		usbotg: usb@5100000 {
+ 			compatible = "allwinner,sun50i-h616-musb",
+ 				     "allwinner,sun8i-h3-musb";
+-- 
+2.34.1
+
